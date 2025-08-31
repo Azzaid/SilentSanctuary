@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <title>Гексагон + треугольник · wobble flow + dual tips</title>
     <style>
         :root{
@@ -33,7 +33,7 @@
             --glyph-min:18px;
             --glyph-max:46px;
 
-            /* used for dash animation; kept defined */
+            /* keep defined for dash animation */
             --x: 0px;
             --dx: 30px;
             --seglen: 120px;
@@ -48,11 +48,28 @@
                     linear-gradient(180deg, var(--bg-1), #080b10 60%, var(--bg-1));
             color:#cfd8e6;
             font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial;
+            -webkit-tap-highlight-color: transparent;
         }
-        .frame{ position:fixed; inset:0; display:grid; place-items:center; padding:24px; }
+
+        /* Use safe-area paddings so the card never gets pushed off-screen */
+        .frame{
+            position:fixed; inset:0;
+            display:grid; place-items:center;
+            box-sizing:border-box;
+            padding:
+                    max(12px, env(safe-area-inset-top))
+                    max(12px, env(safe-area-inset-right))
+                    max(12px, env(safe-area-inset-bottom))
+                    max(12px, env(safe-area-inset-left));
+        }
+
+        /* Size relative to the padded frame (NOT to 100vw/100vh) */
         .card{
-            position:relative; width:min(100vw,980px); height:min(100vh,720px);
-            border:1px solid rgba(255,255,255,.06); border-radius:16px;
+            position:relative;
+            width:min(100%, 980px);
+            height:min(100%, 720px);
+            border:1px solid rgba(255,255,255,.06);
+            border-radius:16px;
             background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.005));
             box-shadow:0 10px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
             overflow:hidden;
@@ -66,7 +83,7 @@
             mix-blend-mode:overlay; opacity:.12; pointer-events:none;
         }
 
-        /* ===== BACK FLOAT GLYPHS (intense) ===== */
+        /* ===== BACK FLOAT GLYPHS ===== */
         .float-layer{
             position:absolute; inset:0; pointer-events:none;
             mask-image: radial-gradient(75% 75% at 50% 50%, #000 50%, transparent 100%);
@@ -91,11 +108,9 @@
         svg{ width:100%; height:100%; display:block; }
 
         .segment{ fill:none; stroke-linecap:round; stroke-width:var(--stroke-width); }
-        /* apply glow then displacement wobble (continuous flow) */
         .hex-stroke{ stroke:var(--hex-line); filter:url(#glowStrong) url(#wavyHex); }
         .tri-stroke{ stroke:var(--tri-line); filter:url(#glowStrong) url(#wavyTri); }
 
-        /* draw-on animation */
         .draw{ animation: dashdraw var(--draw-time) ease-out forwards; }
         @keyframes dashdraw{ from{ stroke-dashoffset: var(--seglen,0) } to{ stroke-dashoffset: 0 } }
 
@@ -159,6 +174,15 @@
 
         .hint{ position:absolute; left:12px; right:12px; bottom:10px; text-align:center; font-size:12px; opacity:.6; user-select:none; }
         .brand{ position:absolute; top:10px; left:14px; font-size:12px; opacity:.5; letter-spacing:.08em }
+
+        /* ===== Mobile fine-tuning ===== */
+        @media (max-width: 480px){
+            :root{
+                --hex-radius: 200;   /* slightly smaller for breathing room */
+                --tri-radius: 136;
+                --stroke-width: 3.6;
+            }
+        }
     </style>
 </head>
 <body>
@@ -169,17 +193,14 @@
         <div class="float-layer" id="floatLayer" aria-hidden="true"></div>
         <div class="tooltip" id="tooltip" role="dialog" aria-live="polite"></div>
 
-        <svg id="scene" viewBox="-500 -360 1000 720" aria-label="Гексагон и треугольник с символами">
+        <!-- Explicit meet scaling helps prevent any odd fitting on iOS -->
+        <svg id="scene" viewBox="-500 -360 1000 720" preserveAspectRatio="xMidYMid meet" aria-label="Гексагон и треугольник с символами">
             <defs>
-                <!-- Сильное свечение для линий -->
+                <!-- strong glow -->
                 <filter id="glowStrong">
                     <feGaussianBlur stdDeviation="2.8" result="b1"/>
-                    <feGaussianBlur stdDeviation="6"   in="SourceGraphic" result="b2"/>
-                    <feMerge>
-                        <feMergeNode in="b2"/>
-                        <feMergeNode in="b1"/>
-                        <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
+                    <feGaussianBlur stdDeviation="6" in="SourceGraphic" result="b2"/>
+                    <feMerge><feMergeNode in="b2"/><feMergeNode in="b1"/><feMergeNode in="SourceGraphic"/></feMerge>
                 </filter>
 
                 <!-- Organic wobble HEX -->
@@ -187,7 +208,7 @@
                     <feTurbulence id="tHex" type="fractalNoise" baseFrequency="0.020 0.032" numOctaves="2" seed="17" stitchTiles="stitch" result="noise"/>
                     <feOffset id="shiftHex" in="noise" dx="0" dy="0" result="noiseShifted">
                         <animate attributeName="dx" values="0;240" keyTimes="0;1" dur="24s" repeatCount="indefinite"/>
-                        <animate attributeName="dy" values="0;60" keyTimes="0;1" dur="24s" repeatCount="indefinite"/>
+                        <animate attributeName="dy" values="0;60"  keyTimes="0;1" dur="24s" repeatCount="indefinite"/>
                     </feOffset>
                     <feGaussianBlur in="noiseShifted" stdDeviation="0.35" result="snoise"/>
                     <feDisplacementMap in="SourceGraphic" in2="snoise" xChannelSelector="R" yChannelSelector="G" scale="15"/>
@@ -198,13 +219,13 @@
                     <feTurbulence id="tTri" type="fractalNoise" baseFrequency="0.020 0.032" numOctaves="2" seed="29" stitchTiles="stitch" result="noise"/>
                     <feOffset id="shiftTri" in="noise" dx="0" dy="0" result="noiseShifted">
                         <animate attributeName="dx" values="0;240" keyTimes="0;1" dur="24s" repeatCount="indefinite"/>
-                        <animate attributeName="dy" values="0;60" keyTimes="0;1" dur="24s" repeatCount="indefinite"/>
+                        <animate attributeName="dy" values="0;60"  keyTimes="0;1" dur="24s" repeatCount="indefinite"/>
                     </feOffset>
                     <feGaussianBlur in="noiseShifted" stdDeviation="0.35" result="snoise"/>
                     <feDisplacementMap in="SourceGraphic" in2="snoise" xChannelSelector="R" yChannelSelector="G" scale="15"/>
                 </filter>
 
-                <!-- Неоновая анимация для рун (общая) -->
+                <!-- Neon for runes -->
                 <filter id="neonSymbol" color-interpolation-filters="sRGB">
                     <feGaussianBlur stdDeviation="0" in="SourceGraphic" result="src"/>
                     <feGaussianBlur stdDeviation="3" in="SourceGraphic" result="blur"/>
@@ -213,10 +234,7 @@
               0 1 0 0 0
               0 0 1 0 0
               0 0 0 1 0" result="neon"/>
-                    <feMerge>
-                        <feMergeNode in="neon"/>
-                        <feMergeNode in="src"/>
-                    </feMerge>
+                    <feMerge><feMergeNode in="neon"/><feMergeNode in="src"/></feMerge>
                 </filter>
             </defs>
 
@@ -270,8 +288,8 @@
     }
 
     /* ===== Build shapes ===== */
-    const hexPts = regularPolygonPoints(6, HEX_R, 0);   // flat-top hex
-    const triPts = regularPolygonPoints(3, TRI_R, -90);  // upward triangle
+    const hexPts = regularPolygonPoints(6, HEX_R, 0);     // flat-top hex
+    const triPts = regularPolygonPoints(3, TRI_R, -90);   // upward triangle
 
     function drawShortSides(points, cls){
         for(let i=0;i<points.length;i++){
@@ -304,8 +322,7 @@
         {title:'Северная грань', text:[
                 'Человек улыбается людям',
                 'Пчелу среди роя победить сложнее, чем дракона в лесу',
-            ]
-        },
+            ]},
         {title:'Северо-восточная', text:[
                 'Человек принимает слабость',
                 'Болезнь — это не выбор, неудача — это не ошибка',
@@ -328,7 +345,6 @@
             ]},
     ];
 
-    // Triangle tips now with two facets: positive (green) and negative (red)
     const triTips = [
         {
             title:'Вершина духа',
@@ -378,14 +394,13 @@
     }
 
     function renderTipHTML(tip){
-        // If tip has pos/neg, render dual facets; else render single text.
         if (tip.pos || tip.neg){
             return `
-                <div class="facets">
-                    ${tip.pos ? `<div class="facet pos"><div class="label">${tip.pos[0]}</div><div>${tip.pos[1]}</div><div>${tip.pos[2]}</div></div>` : ''}
-                    ${tip.neg ? `<div class="facet neg"><div class="label">${tip.neg[0]}</div><div>${tip.neg[1]}</div><div>${tip.neg[2]}</div></div>` : ''}
-                </div>
-            `;
+          <div class="facets">
+            ${tip.pos ? `<div class="facet pos"><div class="label">${tip.pos[0]}</div><div>${tip.pos[1]}</div><div>${tip.pos[2]}</div></div>` : ''}
+            ${tip.neg ? `<div class="facet neg"><div class="label">${tip.neg[0]}</div><div>${tip.neg[1]}</div><div>${tip.neg[2]}</div></div>` : ''}
+          </div>
+        `;
         }
         return `<h4>${tip.text[0]}</h4><p>${tip.text[1] ?? ''}</p>`;
     }
